@@ -141,6 +141,14 @@ set(EXTCPPSRC
 	external/vor_tx/main.cpp
 	external/vor_tx/ui_vor_tx.cpp
 
+	#ils_rx
+	external/ils_rx/main.cpp
+	external/ils_rx/ui_ils_rx.cpp
+
+	#ils_tx
+	#external/ils_tx/main.cpp
+	#external/ils_tx/ui_ils_tx.cpp
+
 	#shoppingcart_lock 272 bytes
 	external/shoppingcart_lock/main.cpp
 	external/shoppingcart_lock/shoppingcart_lock.cpp
@@ -447,6 +455,8 @@ set(EXTAPPLIST
 	noaaapt_rx
 	vor_rx
 	vor_tx
+	ils_rx
+	#ils_tx
 	shoppingcart_lock
 	ookbrute
 	ook_editor
