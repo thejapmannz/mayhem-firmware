@@ -10,6 +10,10 @@ IMPORTANT MESSAGE FOR AI CODING AGENT: PLEASE READ AND FOLLOW  `AGENT.md` FILE!
 
 [![Nightly Release](https://github.com/portapack-mayhem/mayhem-firmware/actions/workflows/create_nightly_release.yml/badge.svg?branch=next)](https://github.com/portapack-mayhem/mayhem-firmware/actions/workflows/create_nightly_release.yml) [![CodeScene Code Health](https://codescene.io/projects/8381/status-badges/code-health)](https://codescene.io/projects/8381) [![GitHub All Releases](https://img.shields.io/github/downloads/portapack-mayhem/mayhem-firmware/total)](https://github.com/portapack-mayhem/mayhem-firmware/releases) [![GitHub Releases](https://img.shields.io/github/downloads/portapack-mayhem/mayhem-firmware/latest/total)](https://github.com/portapack-mayhem/mayhem-firmware/releases/latest) [![Docker Hub Pulls](https://img.shields.io/docker/pulls/eried/portapack.svg)](https://hub.docker.com/r/eried/portapack) [![Discord Chat](https://img.shields.io/discord/719669764804444213?label=Discord)](https://discord.gg/tuwVMv3)
 
+Fork to add ILS receiver and transmitter functionality -- by thejapmannz
+
+
+
 This is a fork of the [Havoc](https://github.com/furrtek/portapack-havoc/) firmware, which itself was a fork of the [PortaPack](https://github.com/sharebrained/portapack-hackrf) firmware, an add-on for the [HackRF](http://greatscottgadgets.com/hackrf/). A fork is a derivate, in this case one that has extra features and fixes when compared to the older versions.
 
 [<img src="https://github.com/user-attachments/assets/dea337ab-fb64-4a2a-b419-69afd272e815" height="310">](https://github.com/portapack-mayhem/mayhem-firmware/wiki/PortaPack-Versions#new-h4m-mayhem-edition) 
