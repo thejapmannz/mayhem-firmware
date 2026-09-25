@@ -33,11 +33,11 @@ using namespace ui;
 
 namespace ui::external_app::ils_rx {
 
-void VorLogger::write_header() {
-    log_file.write_raw("Time;Course;Radial;Deviation;Quality;Flag;");
+/*void IlsLogger::write_header() {
+    log_file.write_raw("Time;DM_90;DM_150;DDM_percent;SDM;Valid;");
 }
 
-void VorLogger::log_status(const VorRxStatusDataMessage& message, uint16_t course_deg) {
+void IlsLogger::log_status(const IlsRxStatusDataMessage& message) {
     const int16_t deviation = static_cast<int16_t>((static_cast<int32_t>(message.radial_deg) - static_cast<int32_t>(course_deg) + 540) % 360 - 180);
     std::string row = ";";
     row += to_string_dec_uint(course_deg);
@@ -46,8 +46,8 @@ void VorLogger::log_status(const VorRxStatusDataMessage& message, uint16_t cours
     row += ";" + to_string_dec_uint(message.quality);
     row += ";" + std::string(message.valid ? (message.to_from ? "TO" : "FROM") : "--");
     log_file.write_entry(rtc_time::now(), row);
-}
-
+}*/
+/*
 VorCdiIndicator::VorCdiIndicator(Point position)
     : Widget{{position, {screen_width, 32}}} {
 }
@@ -114,7 +114,7 @@ void VorCdiIndicator::paint(Painter& painter) {
     const int16_t needle_offset = static_cast<int16_t>((scaled * (2 * tick_spacing)) / 10);
     const auto needle_x = static_cast<Coord>(center_x + needle_offset);
     painter.draw_vline({needle_x, static_cast<Coord>(r.top() + 4)}, r.height() - 8, needle_color);
-}
+}*/
 
 VorRxView::VorRxView(NavigationView& nav)
     : nav_{nav} {
@@ -128,16 +128,12 @@ VorRxView::VorRxView(NavigationView& nav)
                   &audio,
                   &labels,
                   &text_status,
-                  &text_band,
                   &text_next,
-                  &field_course,
-                  &text_course_unit,
                   &field_calibration,
                   &text_calib_unit,
                   &text_radial,
-                  &text_flag,
                   &text_cdi_title,
-                  &cdi_indicator,
+                  // &cdi_indicator,
                   &check_log,
                   &button_start_stop});
 
@@ -146,17 +142,13 @@ VorRxView::VorRxView(NavigationView& nav)
         field_frequency.set_value(110'000'000);
     }
 
-    field_course.set_value(0);
-    field_course.on_change = [this](int32_t) {
-        update_cdi();
-    };
 
     field_calibration.set_value(0);
     field_calibration.on_change = [this](int32_t) {
         refresh_radial();
     };
 
-    logger = std::make_unique<VorLogger>();
+    // logger = std::make_unique<VorLogger>();
     check_log.set_value(logging_);
     check_log.on_select = [this](Checkbox&, bool v) {
         logging_ = v;
@@ -175,17 +167,17 @@ VorRxView::VorRxView(NavigationView& nav)
     start_receiver();
 }
 
-VorRxView::~VorRxView() {
+IlsRxView::~IlsRxView() {
     stop_receiver();
 }
 
-void VorRxView::focus() {
+void IlsRxView::focus() {
     field_frequency.focus();
 }
 
-void VorRxView::start_receiver() {
+void IlsRxView::start_receiver() {
     baseband::run_prepared_image(portapack::memory::map::m4_code.base());
-    baseband::set_vor_config(true);
+    baseband::set_ils_config(true);
 
     radial_filter_valid_ = false;
     flag_state_ = 0;
@@ -198,41 +190,41 @@ void VorRxView::start_receiver() {
     receiver_model.enable();
 
     // enable() applies the AM configuration, which forces the audio codec to
-    // 12 kHz. The VOR baseband keeps its channel at 48 kHz (so the 9960 Hz
-    // subcarrier stays representable), so re-assert 48 kHz audio afterwards.
-    audio::set_rate(audio::Rate::Hz_48000);
+    // 12 kHz. This is acceptable for single frequency ILS, but might miss
+    // a dual-freq ILS which can have separation up to 16kHz. 
+    // audio::set_rate(audio::Rate::Hz_48000);
     audio::output::start();
 
     running_ = true;
     update_status();
 }
 
-void VorRxView::stop_receiver() {
+void IlsRxView::stop_receiver() {
     if (!running_) {
         return;
     }
 
     running_ = false;
-    baseband::set_vor_config(false);
+    baseband::set_ils_config(false);
     receiver_model.disable();
     baseband::shutdown();
     audio::output::stop();
     update_status();
 }
 
-void VorRxView::update_status() {
+void IlsRxView::update_status() {
     text_status.set(running_ ? "Running" : "Idle");
     button_start_stop.set_text(running_ ? "Stop" : "Start");
 }
 
-void VorRxView::update_logging() {
-    if (logger && logging_) {
-        logger->append(logs_dir / (std::string("VOR_") + to_string_timestamp(rtc_time::now()) + ".CSV"));
-        logger->write_header();
-    }
+void IlsRxView::update_logging() {
+    // if (logger && logging_) {
+        // logger->append(logs_dir / (std::string("VOR_") + to_string_timestamp(rtc_time::now()) + ".CSV"));
+        // logger->write_header();
+    // }
 }
 
-void VorRxView::on_vor_status(const VorRxStatusDataMessage& message) {
+void IlsRxView::on_vor_status(const IlsRxStatusDataMessage& message) {
     if (!running_) {
         return;
     }
@@ -251,14 +243,14 @@ void VorRxView::on_vor_status(const VorRxStatusDataMessage& message) {
     text_next.set(message.valid ? "Locked" : "Searching");
     refresh_radial();
     if (logger && logging_) {
-        VorRxStatusDataMessage calibrated = message;
-        calibrated.radial_deg = calibrated_radial(last_radial_deg_);
-        calibrated.to_from = (flag_state_ == 2);
-        logger->log_status(calibrated, field_course.value());
+        // IlsRxStatusDataMessage calibrated = message;
+        // calibrated.radial_deg = calibrated_radial(last_radial_deg_);
+        // calibrated.to_from = (flag_state_ == 2);
+        // logger->log_status(calibrated, field_course.value());
     }
 }
 
-uint16_t VorRxView::smooth_radial(uint16_t radial_deg) {
+uint16_t IlsRxView::smooth_radial(uint16_t radial_deg) {
     // Wrapped exponential moving average. At ~10 updates/s blending 20% of each
     // new reading (alpha = 0.8) gives a ~0.5 s time constant while cutting the
     // jitter by ~3x. Stepping along the shortest arc in 1/64 deg fixed point
@@ -289,7 +281,7 @@ uint16_t VorRxView::smooth_radial(uint16_t radial_deg) {
     return static_cast<uint16_t>((radial_smoothed_fp_ + scale / 2) / scale) % 360;
 }
 
-uint16_t VorRxView::calibrated_radial(uint16_t radial_deg) const {
+uint16_t IlsRxView::calibrated_radial(uint16_t radial_deg) const {
     int32_t value = (static_cast<int32_t>(radial_deg) + field_calibration.value()) % 360;
     if (value < 0) {
         value += 360;
@@ -297,46 +289,19 @@ uint16_t VorRxView::calibrated_radial(uint16_t radial_deg) const {
     return static_cast<uint16_t>(value);
 }
 
-void VorRxView::refresh_radial() {
+void IlsRxView::refresh_radial() {
     if (!have_status_) {
         return;
     }
 
     const uint16_t radial = calibrated_radial(last_radial_deg_);
     text_radial.set(to_string_dec_uint(radial, 3) + " deg");
-    text_flag.set(to_from_label(radial));
     cdi_indicator.set_radial(radial);
     cdi_indicator.set_valid(last_valid_);
 }
 
-const char* VorRxView::to_from_label(uint16_t radial_deg) {
-    if (!last_valid_) {
-        flag_state_ = 0;
-        return "--";
-    }
-
-    // TO/FROM is set by the selected OBS course relative to the received radial,
-    // not by the radial alone. Take the difference wrapped to [-180, 180]: the
-    // switch is at the 90 deg abeam point. |diff| < 90 means the selected course
-    // leads away from the station (FROM); |diff| > 90 means toward it (TO).
-    int32_t diff = (static_cast<int32_t>(radial_deg) - field_course.value() + 540) % 360 - 180;
-    const int32_t adiff = (diff < 0) ? -diff : diff;
-
-    // Hysteresis: hold the current flag within a +/-5 deg dead zone around the
-    // 90 deg boundary so noise near abeam doesn't rapidly toggle TO/FROM.
-    if (adiff < 85) {
-        flag_state_ = 1;  // FROM
-    } else if (adiff > 95) {
-        flag_state_ = 2;  // TO
-    }
-
-    if (flag_state_ == 1) return "FROM";
-    if (flag_state_ == 2) return "TO";
-    return "--";  // abeam / ambiguous
-}
-
-void VorRxView::update_cdi() {
-    cdi_indicator.set_course(field_course.value());
+void IlsRxView::update_cdi() {
+    // cdi_indicator.set_course(field_course.value());
 }
 
 }  // namespace ui::external_app::ils_rx

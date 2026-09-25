@@ -39,63 +39,61 @@
 
 namespace ui::external_app::ils_rx {
 
-class VorLogger {
+/*class IlsLogger {
    public:
     Optional<File::Error> append(const std::filesystem::path& filename) {
         return log_file.append(filename);
     }
 
     void write_header();
-    void log_status(const VorRxStatusDataMessage& message, uint16_t course_deg);
+    void log_status(const IlsRxStatusDataMessage& message);
 
    private:
     LogFile log_file{};
-};
-
-class VorCdiIndicator : public Widget {
+};*/
+/*
+class IlsCdiIndicator : public Widget {
    public:
-    VorCdiIndicator(Point position);
+    IlsCdiIndicator(Point position);
 
-    void set_course(uint16_t course_deg);
-    void set_radial(uint16_t radial_deg);
+    void set_ddm(uint16_t ddm_percent);
     void set_valid(bool valid);
+    void set_loc_glidepath(bool is_glidepath);
 
     void paint(Painter& painter) override;
 
    private:
-    static int32_t normalize_signed_degrees(int32_t degrees);
 
-    uint16_t course_deg_{0};
-    uint16_t radial_deg_{0};
+    uint16_t ddm_percent_{0};
     bool valid_{false};
-};
+    bool is_glidepath_{false};
+};*/
 
-class VorRxView : public View {
+class IlsRxView : public View {
    public:
-    VorRxView(NavigationView& nav);
-    ~VorRxView();
+    IlsRxView(NavigationView& nav);
+    ~IlsRxView();
 
     void focus() override;
 
-    std::string title() const override { return "VOR RX"; }
+    std::string title() const override { return "ILS RX"; }
 
    private:
     void start_receiver();
     void stop_receiver();
     void update_status();
-    void on_vor_status(const VorRxStatusDataMessage& message);
+    void on_ils_status(const IlsRxStatusDataMessage& message);
     void update_cdi();
     void refresh_radial();
     uint16_t calibrated_radial(uint16_t radial_deg) const;
     uint16_t smooth_radial(uint16_t radial_deg);
-    const char* to_from_label(uint16_t radial_deg);
     void update_logging();
 
     NavigationView& nav_;
     bool running_{false};
     bool logging_{false};
     bool have_status_{false};
-    uint16_t last_radial_deg_{0};
+    uint16_t last_ddm_{0};
     bool last_valid_{false};
     uint8_t flag_state_{0};  // TO/FROM hysteresis: 0=unknown, 1=FROM, 2=TO
     // Circular exponential moving average of the radial. Each 100 ms estimate
@@ -124,13 +122,6 @@ class VorRxView : public View {
     Audio audio{
         {UI_POS_X(21), 10, UI_POS_WIDTH_REMAINING(21) - UI_POS_WIDTH(2), 4}};
 
-    NumberField field_course{
-        {UI_POS_X(14), UI_POS_Y(4)},
-        3,
-        {0, 359},
-        1,
-        '0'};
-
     NumberField field_calibration{
         {UI_POS_X(14), UI_POS_Y(7)},
         4,
@@ -140,30 +131,18 @@ class VorRxView : public View {
 
     Labels labels{
         {{UI_POS_X(0), UI_POS_Y(1)}, "Status:", Theme::getInstance()->fg_light->foreground},
-        {{UI_POS_X(0), UI_POS_Y(2)}, "VOR Band:", Theme::getInstance()->fg_light->foreground},
         {{UI_POS_X(0), UI_POS_Y(3)}, "Decoder:", Theme::getInstance()->fg_light->foreground},
-        {{UI_POS_X(0), UI_POS_Y(4)}, "Course (OBS):", Theme::getInstance()->fg_light->foreground},
         {{UI_POS_X(0), UI_POS_Y(5)}, "Rec. Radial:", Theme::getInstance()->fg_light->foreground},
-        {{UI_POS_X(0), UI_POS_Y(6)}, "Flag:", Theme::getInstance()->fg_light->foreground},
         {{UI_POS_X(0), UI_POS_Y(7)}, "Calibration:", Theme::getInstance()->fg_light->foreground}};
 
     Text text_status{
         {UI_POS_X(14), UI_POS_Y(1), UI_POS_WIDTH_REMAINING(14), UI_POS_HEIGHT(1)},
         "Idle"};
-    Text text_band{
-        {UI_POS_X(14), UI_POS_Y(2), UI_POS_WIDTH_REMAINING(14), UI_POS_HEIGHT(1)},
-        "108.00-117.95MHz"};
     Text text_next{
         {UI_POS_X(14), UI_POS_Y(3), UI_POS_WIDTH_REMAINING(14), UI_POS_HEIGHT(1)},
         "Pending"};
-    Text text_course_unit{
-        {UI_POS_X(18), UI_POS_Y(4), UI_POS_WIDTH_REMAINING(18), UI_POS_HEIGHT(1)},
-        "deg"};
     Text text_radial{
         {UI_POS_X(14), UI_POS_Y(5), UI_POS_WIDTH_REMAINING(14), UI_POS_HEIGHT(1)},
-        "--"};
-    Text text_flag{
-        {UI_POS_X(14), UI_POS_Y(6), UI_POS_WIDTH_REMAINING(14), UI_POS_HEIGHT(1)},
         "--"};
     Text text_calib_unit{
         {UI_POS_X(19), UI_POS_Y(7), UI_POS_WIDTH_REMAINING(19), UI_POS_HEIGHT(1)},
@@ -173,10 +152,10 @@ class VorRxView : public View {
         {UI_POS_X(0), UI_POS_Y(9), UI_POS_WIDTH_REMAINING(0), UI_POS_HEIGHT(1)},
         "Course Deviation Indicator"};
 
-    VorCdiIndicator cdi_indicator{
-        {UI_POS_X(0), UI_POS_Y(10)}};
+    // IlsCdiIndicator cdi_indicator{
+        // {UI_POS_X(0), UI_POS_Y(10)}};
 
-    std::unique_ptr<VorLogger> logger{};
+    std::unique_ptr<IlsLogger> logger{};
 
     Button button_start_stop{
         {UI_POS_X(9), UI_POS_Y(14), UI_POS_WIDTH(12), UI_POS_HEIGHT(2)},
@@ -186,13 +165,13 @@ class VorRxView : public View {
         {UI_POS_X(7), UI_POS_Y(17)},
         3,
         "LOG to SD Card",
-        true};
+        false};
 
-    MessageHandlerRegistration message_handler_vor_status{
-        Message::ID::VorRxStatusData,
+    MessageHandlerRegistration message_handler_ils_status{
+        Message::ID::IlsRxStatusData,
         [this](const Message* p) {
-            const auto message = *reinterpret_cast<const VorRxStatusDataMessage*>(p);
-            on_vor_status(message);
+            const auto message = *reinterpret_cast<const IlsRxStatusDataMessage*>(p);
+            on_ils_status(message);
         }};
 };
 
